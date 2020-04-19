@@ -1,7 +1,6 @@
 import os
-import codecs # For handling unicode characters when reading file containing unicode characters to list
 
-# Encode text (our secret message in clear text) to binary string, using the defined dictionary in the main program
+# Encode a clear text (in Russian) to binary string, using the defined dictionary in the main program
 def encode(secret_message):
     binary_secret_message = ''
     for character in secret_message:
@@ -9,7 +8,7 @@ def encode(secret_message):
         binary_secret_message += dictionary.get(character)
     return binary_secret_message
 
-# Decode binary string to text (our secret message in clear text), using the defined dictionary in the main program
+# Decode a binary string to cleartext (in Russian), using the defined dictionary in the main program
 def decode(binary_secret_message):
     secret_message = ''
     for i in range(0, len(binary_secret_message), 5):
@@ -18,12 +17,16 @@ def decode(binary_secret_message):
                 secret_message += key
     return secret_message
 
-# Hide secret message into the container file, output to another file
+# Hide secret message (in Russian) into the container_file_in, produce container_file_out as result
 def hide_secret_message(container_file_in, secret_message, container_file_out):
-    # Read all characters from file 'container_file_in' into a list 'character_list' 
-    character_list = [char for char in open(container_file_in).read()]
+    # Read all characters from file 'container_file_in' into a list 'character_list'
+    with open(container_file_in, mode='r', encoding='utf8') as file:
+        text = file.read()
+    character_list = list(text)
+
     binary_secret_message = encode(secret_message)
     number_of_replacement = 0
+    # Character list index
     j = 0
     for i in range(0, len(character_list), 1):
         if character_list[i] == pair[0][0] and binary_secret_message[j] == '0':
@@ -37,20 +40,19 @@ def hide_secret_message(container_file_in, secret_message, container_file_out):
         # If number_of_replacement == len(secret_message_in_binary), then break the loop
         if number_of_replacement == len(binary_secret_message):
             break
-    # Write an updated character list elements after hiding secret message
-    f = open(container_file_out, "wb")
-    for character in character_list:
-        f.write(character.encode('utf8'))
-    f.close()
+    # Write all character list elements after hiding secret message
+    with open(container_file_out, mode='w', encoding='utf8') as file:
+        for character in character_list:
+            file.write(character)
 
-# Unhide secret message from a container file, return secret message in clear text
+# Extract binary sequence in the container file, convert that binary sequence to cleartext in Russian (using the defined dictionary),
+# and return the cleartext
 def unhide_secret_message(container_file, method):
     # Read all characters from the container file into a list
-    character_list = []
-    with codecs.open(container_file, encoding='utf-8') as f:
-        for line in f:
-            for character in line:
-                character_list.append(character)
+    with open(container_file, mode='r', encoding='utf8') as file:
+        text = file.read()
+    character_list = list(text)
+                
     binary_secret_message = ''
     if method == '1':
         for i in range(0, len(character_list), 1):
@@ -70,14 +72,19 @@ def unhide_secret_message(container_file, method):
 # The main program
 if __name__ == "__main__":
     # Create a dictionary for storing {character:binary} pairs
+    # а:00000
+    # б:00001
+    # в:00010
+    # ...
     dictionary = {}
     for i in range(1072, 1104, 1):
-        # Add a new key:value pair
+        # Add a new {key:value} pair to the dictionary
         dictionary.update( {chr(i) : bin(i-1072)[2:].zfill(5)} )
         # Method dict.update({key: value}) appends a key-value pair to the dictionary 'dict'
         # Method chr(int) returns a character from an integer 'int'
         # Method bin(int)[2:] return the binary equivalent string of a given integer 'int'
         # Method binary_string.zfill(int) pads binary_string on the left with zeros to fill width 'int'
+    print(dictionary)
     
     print("1. Replace 'o' and 'p' in English with 'о' and 'р' in Russian")
     print("2. Add 1 or 2 spaces before '\\n'")
@@ -100,10 +107,10 @@ if __name__ == "__main__":
         pattern = '\x00'
 
     print("Current working directory:", os.getcwd())
-    secret_message = input("Enter your secret message: ")
+    secret_message = input("Enter your secret message (RU chars only): ")
 
-    print("Hiding secret message into the container_before file...")
+    print("Hiding secret message into the container_before.txt file...")
     hide_secret_message('container_before.txt', secret_message, 'container_after.txt')
 
-    print("Extract secret message from the container_after file...")
+    print("Extract secret message from the container_after.txt file...")
     print(unhide_secret_message('container_after.txt', method))
